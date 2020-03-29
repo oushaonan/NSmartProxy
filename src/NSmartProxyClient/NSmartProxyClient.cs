@@ -82,21 +82,45 @@ namespace NSmartProxy
             Logger.Info("Client terminated,press any key to continue.");
 
         }
+        private static string TryLoadDefaultPath(string ConfigFilePath)
+        {
+            int n = 0;
+            while (n <= 10) //最近10个配置文件
+            {
+                try
+                {
+                    string path = ConfigFilePath;
+                    if (n > 0)
+                    {
+                        path = path.Replace("appsettings.json", "appsettings_" + n + ".json");
+                    }
+                    NSPClientConfig config = ConfigHelper.ReadAllConfig<NSPClientConfig>(path);
+                    if (config != null) return path;
+                }
+                catch
+                {
 
+                }
+                n++;
+            }
+            return ConfigFilePath;
+        }
         private static async Task StartClient()
         {
 
             Router clientRouter = new Router(new Log4netLogger());
             //read config from config file.
-            clientRouter.SetConfiguration(ConfigHelper.ReadAllConfig<NSPClientConfig>(ConfigFilePath));
+            string str_ConfigFilePath = TryLoadDefaultPath(ConfigFilePath);
+            clientRouter.SetConfiguration(ConfigHelper.ReadAllConfig<NSPClientConfig>(str_ConfigFilePath));
+            Logger.Info($"配置文件路径： {str_ConfigFilePath} ");
             if (_currentLoginInfo != null)
             {
                 clientRouter.SetLoginInfo(_currentLoginInfo);
             }
-
             Task tsk = clientRouter.Start(true);
             try
             {
+
                 await tsk;
             }
             catch (Exception e)
